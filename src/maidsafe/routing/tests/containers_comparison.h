@@ -38,21 +38,18 @@ namespace routing {
 
 namespace test {
 
-uint32_t kLifeInSeconds = 2; // 5 min
-uint32_t kHistoryCleanupFactor = 1000;
-
 struct ProcessedEntry {
   ProcessedEntry(const NodeId& source_in, int32_t messsage_id_in)
-      : source(source_in), message_id(messsage_id_in), expiry_time(std::time(NULL)) {}
+      : source(source_in), message_id(messsage_id_in), birth_time(std::time(NULL)) {}
   ProcessedEntry Key() const { return *this; }
-  std::time_t BirthTime() const { return expiry_time; }
+  std::time_t BirthTime() const { return birth_time; }
   NodeId source;
   int32_t message_id;
-  std::time_t expiry_time;
+  std::time_t birth_time;
 };
 
 bool operator > (const ProcessedEntry& lhs, const ProcessedEntry& rhs);
- 
+
 typedef boost::multi_index_container<
   ProcessedEntry,
   boost::multi_index::indexed_by<
@@ -62,17 +59,34 @@ typedef boost::multi_index_container<
       BOOST_MULTI_INDEX_CONST_MEM_FUN(ProcessedEntry, std::time_t, BirthTime)>
   >
 > ProcessedEntrySet;
- 
+
 
 template <typename ContainerType>
 class Container {
  public:
   Container() : container_() {}
   bool Add(const NodeId& source, int32_t message_id);
+  void set_history_cleanup_factor(uint32_t history_cleanup_factor) {
+    history_cleanup_factor_ = history_cleanup_factor;
+  }
+
+  uint32_t get_history_cleanup_factor() {
+    return history_cleanup_factor_;
+  }
+
+  void set_life_in_seconds(uint32_t life_in_seconds) {
+    life_in_seconds_ = life_in_seconds;
+  }
+
+  uint32_t get_life_in_seconds() {
+    return life_in_seconds_;
+  }
 
  private:
   void Remove(std::unique_lock<std::mutex>& lock);
   std::mutex mutex_;
+  uint32_t history_cleanup_factor_;
+  uint32_t life_in_seconds_;
   ContainerType container_;
 };
 
@@ -94,16 +108,15 @@ bool Container<std::vector<ProcessedEntry>>::Add(const NodeId& source, int32_t m
 
 template <>
 bool Container<std::set<ProcessedEntry>>::Add(const NodeId& source, int32_t message_id);
- 
+
 template <>
 void Container<std::set<ProcessedEntry>>::Remove(std::unique_lock<std::mutex>& lock);
 
 template <>
 bool Container<ProcessedEntrySet>::Add(const NodeId& source, int32_t message_id);
- 
+
 template <>
 void Container<ProcessedEntrySet>::Remove(std::unique_lock<std::mutex>& lock);
-
 
 }  // namespace test
 
