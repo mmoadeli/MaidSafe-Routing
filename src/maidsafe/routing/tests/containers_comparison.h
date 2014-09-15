@@ -19,23 +19,18 @@
 #ifndef MAIDSAFE_ROUTING_TESTS_CONTAINERS_COMPARISON_H_
 #define MAIDSAFE_ROUTING_TESTS_CONTAINERS_COMPARISON_H_
 
-#include <cstdint>
+#include <set>
 #include <vector>
-#include <string>
 
-#include "boost/asio/ip/address.hpp"
-#include "boost/asio/ip/udp.hpp"
-#include "boost/filesystem/path.hpp"
+#include "boost/multi_index_container.hpp"
+#include "boost/multi_index/global_fun.hpp"
+#include "boost/multi_index/mem_fun.hpp"
+#include "boost/multi_index/ordered_index.hpp"
+#include "boost/multi_index/identity.hpp"
 
-#include "maidsafe/common/rsa.h"
-
-#include "maidsafe/passport/types.h"
-
-#include "maidsafe/routing/bootstrap_file_operations.h"
-#include "maidsafe/routing/node_info.h"
-#include "maidsafe/routing/routing_table.h"
-#include "maidsafe/routing/utils.h"
-
+#include "maidsafe/common/test.h"
+#include "maidsafe/common/node_id.h"
+#include "maidsafe/common/utils.h"
 
 namespace maidsafe {
 
@@ -43,18 +38,31 @@ namespace routing {
 
 namespace test {
 
-const uint32_t kLifeInSeconds = 1; // 5 min
-const uint32_t kHistoryCleanupFactor = 100;
+uint32_t kLifeInSeconds = 2; // 5 min
+uint32_t kHistoryCleanupFactor = 1000;
 
 struct ProcessedEntry {
   ProcessedEntry(const NodeId& source_in, int32_t messsage_id_in)
       : source(source_in), message_id(messsage_id_in), expiry_time(std::time(NULL)) {}
+  ProcessedEntry Key() const { return *this; }
+  std::time_t BirthTime() const { return expiry_time; }
   NodeId source;
   int32_t message_id;
   std::time_t expiry_time;
 };
 
 bool operator > (const ProcessedEntry& lhs, const ProcessedEntry& rhs);
+ 
+typedef boost::multi_index_container<
+  ProcessedEntry,
+  boost::multi_index::indexed_by<
+      boost::multi_index::ordered_unique<boost::multi_index::identity<ProcessedEntry>
+  >,
+  boost::multi_index::ordered_non_unique<
+      BOOST_MULTI_INDEX_CONST_MEM_FUN(ProcessedEntry, std::time_t, BirthTime)>
+  >
+> ProcessedEntrySet;
+ 
 
 template <typename ContainerType>
 class Container {
@@ -85,10 +93,17 @@ template <>
 bool Container<std::vector<ProcessedEntry>>::Add(const NodeId& source, int32_t message_id);
 
 template <>
+bool Container<std::set<ProcessedEntry>>::Add(const NodeId& source, int32_t message_id);
+ 
+template <>
 void Container<std::set<ProcessedEntry>>::Remove(std::unique_lock<std::mutex>& lock);
 
 template <>
-bool Container<std::set<ProcessedEntry>>::Add(const NodeId& source, int32_t message_id);
+bool Container<ProcessedEntrySet>::Add(const NodeId& source, int32_t message_id);
+ 
+template <>
+void Container<ProcessedEntrySet>::Remove(std::unique_lock<std::mutex>& lock);
+
 
 }  // namespace test
 
