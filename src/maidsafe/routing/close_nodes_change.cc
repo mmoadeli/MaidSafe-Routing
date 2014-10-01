@@ -208,24 +208,26 @@ NodeId CloseNodesChange::ChoosePmidNode(const std::set<NodeId>& online_pmids,
   if (online_pmids.empty())
     BOOST_THROW_EXCEPTION(MakeError(CommonErrors::invalid_parameter));
 
-  LOG(kInfo) << " new close nodes : ";
+  LOG(kInfo) << "CloseNodesChange::ChoosePmidNode having following new_close_nodes_ : ";
   for (auto id : new_close_nodes_)
-    LOG(kInfo) << "\t new close nodes ids     ---  " << id;
-  LOG(kInfo) << "\t target : " << target << " and following online pmids : ";
+    LOG(kInfo) << "       new_close_nodes_ ids     ---  " << HexSubstr(id.string());
+  LOG(kInfo) << "CloseNodesChange::ChoosePmidNode having target : "
+                << HexSubstr(target.string()) << " and following online_pmids : ";
   for (auto pmid : online_pmids)
-    LOG(kInfo) << "\tonline pmids    ---  " << pmid;
+    LOG(kInfo) << "       online_pmids        ---  " << HexSubstr(pmid.string());
 
   // In case storing to PublicPmid, the data shall not be stored on the Vault itself
   // However, the vault will appear in DM's routing table and affect result
   std::vector<NodeId> temp(Parameters::group_size + 1);
   std::partial_sort_copy(std::begin(new_close_nodes_), std::end(new_close_nodes_), std::begin(temp),
-                         std::end(temp),
-                         [&target](const NodeId& lhs, const NodeId& rhs) {
-                           return NodeId::CloserToTarget(lhs, rhs, target);
-                         });
-  LOG(kInfo) << " own id : " << node_id_ << " and closest + 1 to the target are : ";
+                         std::end(temp), [&target](const NodeId& lhs, const NodeId& rhs) {
+    return NodeId::CloserToTarget(lhs, rhs, target);
+  });
+
+  LOG(kInfo) << "CloseNodesChange::ChoosePmidNode own id : "
+                << HexSubstr(node_id_.string()) << " and closest+1 to the target are : ";
   for (auto node : temp)
-    LOG(kInfo) << "   sorted neighbours   ---  " << node;
+    LOG(kInfo) << "       sorted_neighbours   ---  " << HexSubstr(node.string());
 
   auto temp_itr(std::begin(temp));
   auto pmids_itr(std::begin(online_pmids));
@@ -239,7 +241,7 @@ NodeId CloseNodesChange::ChoosePmidNode(const std::set<NodeId>& online_pmids,
     if (++pmids_itr == std::end(online_pmids))
       pmids_itr = std::begin(online_pmids);
   }
-  LOG(kVerbose) << "Chosen pmid " << *pmids_itr;
+
   return *pmids_itr;
 }
 

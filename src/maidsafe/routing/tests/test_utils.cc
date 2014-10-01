@@ -28,7 +28,6 @@
 #include "maidsafe/common/log.h"
 #include "maidsafe/common/node_id.h"
 #include "maidsafe/common/utils.h"
-#include "maidsafe/common/test.h"
 #include "maidsafe/passport/passport.h"
 #include "maidsafe/rudp/managed_connections.h"
 
@@ -51,7 +50,8 @@ ScopedBootstrapFile::ScopedBootstrapFile(const BootstrapContacts& bootstrap_cont
 }
 
 ScopedBootstrapFile::~ScopedBootstrapFile() {
-  EXPECT_NO_THROW(boost::filesystem::remove(kFilePath));
+  if (boost::filesystem::remove(kFilePath))
+    LOG(kError) << "Failed to remove bootstrap file at : " << kFilePath;
 }
 
 NodeInfo MakeNode() {

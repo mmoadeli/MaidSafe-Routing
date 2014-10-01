@@ -166,6 +166,7 @@ class GenericNode {
   std::shared_ptr<Routing> routing_;
 
  private:
+  std::mutex health_mutex_;
   int health_;
   void InitialiseFunctors();
 };
