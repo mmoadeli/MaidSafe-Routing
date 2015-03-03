@@ -1,4 +1,4 @@
-Put
+---- PutData
 client -> client_manager {
             auto result(node_acc_.Add(name, value, pair<sender, message_id>));
             if (result) {
@@ -33,3 +33,9 @@ node_manager -> node {
                       if (group_key_acc.Check(header.group + message_id))
                         retrun Result;
                   }
+
+---- GetData
+client -> nae_manager {
+            return Resullt;
+          }
+
